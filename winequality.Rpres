@@ -1,0 +1,62 @@
+Wine Quality Estimator
+========================================================
+author: JS Gourdet
+date: 26/04/2015
+transition: rotate
+
+Why this tool ?
+========================================================
+
+&#x21e8; to estimate the quality of a wine based on its physicochemical properties.
+  
+It is mainly targeted for winemakers who can:  
+- estimate the experts' evaluation of their wine by filling in it its properties,
+- play with all properties to find which combinaisons would raise the quality and therefore how to improve a wine. 
+
+The Dataset
+========================================================
+
+The estimator is using a reference datasets of 1599 red wines "Vinho Verde". Therefore, it should be used only to estimate such type of wine.  
+The dataset has been made publicly [available](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) by P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis.
+  
+It consists to 11 features and the quality grade between 0 (very poor) and 10 (very excellent).
+
+```{r load_data, echo=FALSE}
+wine<-read.table("winequality-red.csv",sep=";",header=T)
+names(wine)
+```
+
+
+The prediction function
+========================================================
+*"Only the Nature knows the Nature"* -- Little Red Riding Hood's grandmother.  
+  
+Based on this foundation, nothing better than using the (magic) power of a forest (without Big Bad Wolf) to estimate quality of a natural wine.
+
+So using the filled-in properties, 500 trees, randomly chosen within the forest, were asked for their opinion. Then their average was taken to provide the estimated quality.
+
+Accuracy
+========================================================
+Splitting the dataset (70/30) in training and test, let's compare the estimation (left) with the actual values (right).  
+```{r graph, echo=FALSE,out.height="250px",out.width="800px"}
+library(caret)
+library(randomForest)
+inTrain<-createDataPartition(y=wine$quality, p=0.7,list=FALSE)
+training<-wine[inTrain,]
+testing<-wine[-inTrain,]
+set.seed(12345)
+fit.rf2<-randomForest(quality~.,data=training)
+predtr.rf2<-predict(fit.rf2,newdata=training)
+RSMEtr<-sqrt(sum((predtr.rf2-training$quality)^2))
+pred.rf2<-predict(fit.rf2,newdata=testing)
+RSMEtst<-sqrt(sum((pred.rf2-testing$quality)^2))
+
+par(mfrow=c(1,2))
+hist(pred.rf2,xlab="Wine Quality (grades)",main="Estimated",xlim=c(3,8))
+hist(testing$quality,xlab="Wine Quality (grades)", main="Actual",xlim=c(3,8))
+```
+  
+RMSE on training is: `r round(RSMEtr,2)` and on test `r round(RSMEtst,2)`.  
+  
+**Conclusions:** There is still room for improvement.  
+The forest probably needs to be cleaned by chopping down the old trees providing biased estimation.
